@@ -45,12 +45,6 @@ const config = createConfig([
         'off',
         { matchDescription: '^[A-Z`\\d_][\\s\\S]*[.?!`>)}]$' },
       ],
-
-      // TODO: These rules created more errors after the upgrade to ESLint 9.
-      // Re-enable these rules and address any lint violations.
-      'import-x/no-named-as-default-member': 'warn',
-      'prettier/prettier': 'warn',
-      'no-empty-function': 'warn',
     },
     settings: {
       jsdoc: {
@@ -71,20 +65,20 @@ const config = createConfig([
     rules: {
       // TODO: Re-enable this
       'n/no-sync': 'off',
-      // TODO: These rules created more errors after the upgrade to ESLint 9.
-      // Re-enable these rules and address any lint violations.
-      'n/no-unsupported-features/node-builtins': 'warn',
     },
   },
   {
     files: ['**/*.test.{js,ts}', '**/tests/**/*.{js,ts}'],
     extends: [jest],
     rules: {
-      // TODO: These rules created more errors after the upgrade to ESLint 9.
-      // Re-enable these rules and address any lint violations.
-      'jest/no-conditional-in-test': 'warn',
-      'jest/prefer-lowercase-title': 'warn',
-      'jest/prefer-strict-equal': 'warn',
+      // TODO: Upgrade these from warning to error in shared config
+      'jest/expect-expect': 'error',
+      'jest/no-alias-methods': 'error',
+      'jest/no-commented-out-tests': 'error',
+      'jest/no-disabled-tests': 'error',
+
+      // TODO: Disable this rule
+      'jest/no-conditional-in-test': 'error',
 
       // TODO: Re-enable this rule
       'jest/unbound-method': 'off',
@@ -123,6 +117,9 @@ const config = createConfig([
       },
     },
     rules: {
+      // TODO: Disable these rules
+      '@typescript-eslint/no-unsafe-enum-comparison': 'error',
+
       // These rules have been customized from their defaults.
       '@typescript-eslint/switch-exhaustiveness-check': [
         'error',
@@ -155,29 +152,6 @@ const config = createConfig([
       '@typescript-eslint/prefer-reduce-type-parameter': 'off',
       'no-restricted-syntax': 'off',
       'no-restricted-globals': 'off',
-
-      // TODO: These rules created more errors after the upgrade to ESLint 9.
-      // Re-enable these rules and address any lint violations.
-      '@typescript-eslint/consistent-type-exports': 'warn',
-      '@typescript-eslint/explicit-function-return-type': 'off',
-      '@typescript-eslint/no-base-to-string': 'warn',
-      '@typescript-eslint/no-duplicate-enum-values': 'warn',
-      '@typescript-eslint/no-misused-promises': 'warn',
-      '@typescript-eslint/no-unsafe-enum-comparison': 'warn',
-      '@typescript-eslint/no-unused-vars': 'warn',
-      '@typescript-eslint/only-throw-error': 'warn',
-      '@typescript-eslint/prefer-promise-reject-errors': 'warn',
-      '@typescript-eslint/prefer-readonly': 'warn',
-      'import-x/namespace': 'warn',
-      'import-x/no-named-as-default': 'warn',
-      'import-x/order': 'warn',
-      'jsdoc/check-tag-names': 'warn',
-      'jsdoc/require-returns': 'warn',
-      'jsdoc/tag-lines': 'warn',
-      'no-unused-private-class-members': 'warn',
-      'promise/always-return': 'warn',
-      'promise/catch-or-return': 'warn',
-      'promise/param-names': 'warn',
     },
   },
   {
@@ -190,7 +164,6 @@ const config = createConfig([
   {
     files: ['**/*.d.ts'],
     rules: {
-      '@typescript-eslint/naming-convention': 'warn',
       'import-x/unambiguous': 'off',
     },
   },
@@ -206,41 +179,12 @@ const config = createConfig([
     rules: {
       // These files run under Node, and thus `require(...)` is expected.
       'n/global-require': 'off',
-
-      // TODO: These rules created more errors after the upgrade to ESLint 9.
-      // Re-enable these rules and address any lint violations.
-      'n/prefer-global/text-encoder': 'warn',
-      'n/prefer-global/text-decoder': 'warn',
-      'no-shadow': 'warn',
     },
   },
   {
     files: ['**/*.mjs'],
     languageOptions: {
       sourceType: 'module',
-    },
-  },
-  {
-    files: ['packages/eth-block-tracker/**/*.ts'],
-    rules: {
-      // TODO: Re-enable these rules or add inline ignores for warranted cases
-      '@typescript-eslint/prefer-nullish-coalescing': 'warn',
-      'no-restricted-syntax': 'warn',
-      '@typescript-eslint/naming-convention': 'warn',
-      '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/unbound-method': 'warn',
-      '@typescript-eslint/consistent-type-definitions': 'warn',
-    },
-  },
-  {
-    files: ['packages/eth-json-rpc-middleware/**/*.ts'],
-    rules: {
-      // TODO: Re-enable these rules or add inline ignores for warranted cases
-      '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/prefer-nullish-coalescing': 'warn',
-      'jsdoc/match-description': 'warn',
-      'jsdoc/require-jsdoc': 'warn',
-      'no-restricted-syntax': 'warn',
     },
   },
   {
