@@ -506,8 +506,8 @@ describe('BackendWebSocketService', () => {
         async ({ service }) => {
           expect(service.getConnectionInfo().url).toBe('ws://test.example.com');
           expect(service.getConnectionInfo().timeout).toBe(10000);
-          expect(service.getConnectionInfo().reconnectDelay).toBe(500);
-          expect(service.getConnectionInfo().maxReconnectDelay).toBe(5000);
+          expect(service.getConnectionInfo().reconnectDelay).toBe(10000);
+          expect(service.getConnectionInfo().maxReconnectDelay).toBe(60000);
           expect(service.getConnectionInfo().requestTimeout).toBe(30000);
           expect(service).toBeInstanceOf(BackendWebSocketService);
         },
@@ -1083,6 +1083,90 @@ describe('BackendWebSocketService', () => {
           // Should have returned early, attempts unchanged
           expect(service.getConnectionInfo().reconnectAttempts).toBe(
             attemptsBefore,
+          );
+        },
+      );
+    });
+
+    it('should include connectionDuration_ms in trace when connection was established', async () => {
+      const mockTraceFn = jest.fn((_request, fn) => fn?.());
+      await withService(
+        {
+          options: { traceFn: mockTraceFn },
+        },
+        async ({ service, getMockWebSocket, completeAsyncOperations }) => {
+          // Connect and let it establish
+          await service.connect();
+          await completeAsyncOperations(10);
+
+          expect(service.getConnectionInfo().state).toBe(
+            WebSocketState.CONNECTED,
+          );
+
+          // Clear previous trace calls to focus on disconnection trace
+          mockTraceFn.mockClear();
+
+          // Trigger unexpected close after connection was established
+          const mockWs = getMockWebSocket();
+          mockWs.simulateClose(1006, 'Abnormal closure');
+          await completeAsyncOperations(10);
+
+          // Find the Disconnection trace call
+          const disconnectionTrace = mockTraceFn.mock.calls.find(
+            (call) => call[0]?.name === 'BackendWebSocketService Disconnection',
+          );
+
+          expect(disconnectionTrace).toBeDefined();
+          expect(disconnectionTrace?.[0]?.data).toHaveProperty(
+            'connectionDuration_ms',
+          );
+          expect(
+            disconnectionTrace?.[0]?.data?.connectionDuration_ms,
+          ).toBeGreaterThan(0);
+        },
+      );
+    });
+
+    it('should omit connectionDuration_ms in trace when connection never established', async () => {
+      const mockTraceFn = jest.fn((_request, fn) => fn?.());
+      await withService(
+        {
+          options: { traceFn: mockTraceFn },
+          mockWebSocketOptions: { autoConnect: false },
+        },
+        async ({ service, getMockWebSocket, completeAsyncOperations }) => {
+          // Start connecting
+          // eslint-disable-next-line @typescript-eslint/no-floating-promises
+          service.connect();
+          await completeAsyncOperations(0);
+
+          expect(service.getConnectionInfo().state).toBe(
+            WebSocketState.CONNECTING,
+          );
+
+          // Manually disconnect before connection establishes
+          // This will set state to DISCONNECTING and close the WebSocket
+          service.disconnect();
+          await completeAsyncOperations(0);
+
+          // Clear trace calls from connection attempt
+          mockTraceFn.mockClear();
+
+          // Simulate the close event after disconnect (state is now DISCONNECTING, not CONNECTING)
+          // This will trigger #handleClose with connectedAt = 0
+          const mockWs = getMockWebSocket();
+          mockWs.simulateClose(1000, 'Normal closure');
+          await completeAsyncOperations(10);
+
+          // Find the Disconnection trace call
+          const disconnectionTrace = mockTraceFn.mock.calls.find(
+            (call) => call[0]?.name === 'BackendWebSocketService Disconnection',
+          );
+
+          // Trace should exist but should NOT have connectionDuration_ms
+          expect(disconnectionTrace).toBeDefined();
+          expect(disconnectionTrace?.[0]?.data).not.toHaveProperty(
+            'connectionDuration_ms',
           );
         },
       );

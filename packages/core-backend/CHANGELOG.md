@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Improve WebSocket connection lifecycle tracing in `BackendWebSocketService` ([#7101](https://github.com/MetaMask/core/pull/7101))
+  - WebSocket connection duration is now properly reflected in trace span duration instead of only in custom data
+  - Trace all disconnections (both manual and unexpected) to provide complete connection lifecycle visibility in traces
+  - Omit `connectionDuration_ms` from disconnection traces when connection never established (onClose without onOpen)
+- Update `BackendWebSocketService` to use less aggressive exponential backoff for reconnection
+  - Increase default `reconnectDelay` from 500 milliseconds to 10 seconds
+  - Increase default `maxReconnectDelay` from 30 seconds to 60 seconds
+
+### Removed
+
+- Remove `BackendWebSocketService Channel Message` trace as it provided no useful performance insights
+
 ## [4.0.0]
 
 ### Changed
