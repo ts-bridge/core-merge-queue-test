@@ -16729,7 +16729,9 @@ function buildFakeClient(
       rpcUrl: 'https://test.network',
     },
     provider,
-    blockTracker: new FakeBlockTracker({ provider }),
+    blockTracker: new FakeBlockTracker({
+      provider,
+    }),
     destroy: () => {
       // do nothing
     },
