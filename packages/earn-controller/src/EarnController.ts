@@ -34,6 +34,8 @@ import {
   EarnEnvironments,
   ChainId,
   isSupportedPooledStakingChain,
+  type TronscanWitnessesResponse,
+  isSupportedTronChain,
 } from '@metamask/stake-sdk';
 import {
   type TransactionController,
@@ -49,6 +51,7 @@ import type {
   RefreshPooledStakesOptions,
   RefreshPooledStakingDataOptions,
   RefreshPooledStakingVaultDailyApysOptions,
+  RefreshTronStakingWitnessesOptions,
 } from './types';
 
 export const controllerName = 'EarnController';
@@ -90,6 +93,13 @@ export type LendingState = {
   isEligible: boolean;
 };
 
+export type TronStakingState = {
+  [chainId: number]: {
+    witnesses: TronscanWitnessesResponse;
+  };
+  isEligible: boolean;
+};
+
 type StakingTransactionTypes =
   | TransactionType.stakingDeposit
   | TransactionType.stakingUnstake
@@ -126,6 +136,12 @@ const earnControllerMetadata: StateMetadata<EarnControllerState> = {
     includeInDebugSnapshot: false,
     usedInUi: true,
   },
+  tron_staking: {
+    includeInStateLogs: true,
+    persist: true,
+    includeInDebugSnapshot: false,
+    usedInUi: true,
+  },
   lastUpdated: {
     includeInStateLogs: true,
     persist: false,
@@ -138,6 +154,7 @@ const earnControllerMetadata: StateMetadata<EarnControllerState> = {
 export type EarnControllerState = {
   pooled_staking: PooledStakingState;
   lending: LendingState;
+  tron_staking: TronStakingState;
   lastUpdated: number;
 };
 
@@ -207,6 +224,15 @@ export const DEFAULT_POOLED_STAKING_CHAIN_STATE = {
   vaultApyAverages: DEFAULT_POOLED_STAKING_VAULT_APY_AVERAGES,
 };
 
+export const DEFAULT_TRON_STAKING_WITNESSES: TronscanWitnessesResponse = {
+  total: 0,
+  data: [],
+};
+
+export const DEFAULT_TRON_STAKING_CHAIN_STATE = {
+  witnesses: DEFAULT_TRON_STAKING_WITNESSES,
+};
+
 /**
  * Gets the default state for the EarnController.
  *
@@ -220,6 +246,9 @@ export function getDefaultEarnControllerState(): EarnControllerState {
     lending: {
       markets: [DEFAULT_LENDING_MARKET],
       positions: [DEFAULT_LENDING_POSITION],
+      isEligible: false,
+    },
+    tron_staking: {
       isEligible: false,
     },
     lastUpdated: 0,
@@ -299,6 +328,8 @@ export class EarnController extends BaseController<
 
   readonly #supportedPooledStakingChains: number[];
 
+  readonly #supportedTronStakingChains: number[];
+
   readonly #env: EarnEnvironments;
 
   constructor({
@@ -333,6 +364,9 @@ export class EarnController extends BaseController<
     // from sdk or api to get lending and pooled staking chains
     this.#supportedPooledStakingChains = [ChainId.ETHEREUM, ChainId.HOODI];
 
+    // Currently only supporting Tron mainnet in production
+    this.#supportedTronStakingChains = [ChainId.TRON_MAINNET];
+
     this.#addTransactionFn = addTransactionFn;
 
     this.#selectedNetworkClientId = selectedNetworkClientId;
@@ -340,6 +374,7 @@ export class EarnController extends BaseController<
     this.#initializeSDK(selectedNetworkClientId).catch(console.error);
     this.refreshPooledStakingData().catch(console.error);
     this.refreshLendingData().catch(console.error);
+    this.refreshTronStakingData().catch(console.error);
 
     // Listen for network changes
     this.messenger.subscribe(
@@ -544,6 +579,7 @@ export class EarnController extends BaseController<
     this.update((state) => {
       state.pooled_staking.isEligible = isEligible;
       state.lending.isEligible = isEligible;
+      state.tron_staking.isEligible = isEligible;
     });
   }
 
@@ -798,6 +834,66 @@ export class EarnController extends BaseController<
     if (errors.length > 0) {
       throw new Error(
         `Failed to refresh some lending data: ${errors
+          .map((e) => e.message)
+          .join(', ')}`,
+      );
+    }
+  }
+
+  /**
+   * Refreshes the Tron staking witnesses data for a specific chain.
+   * Updates the witnesses data in the controller state including total count and witness details.
+   *
+   * @param options - Optional arguments
+   * @param [options.chainId] - The chain id to refresh Tron staking witnesses for (defaults to TRON_MAINNET).
+   * @param [options.witnessType] - The type of witnesses to fetch (defaults to ALL).
+   * @returns A promise that resolves when the witnesses data has been updated
+   */
+  async refreshTronStakingWitnesses({
+    chainId = ChainId.TRON_MAINNET,
+    witnessType,
+  }: RefreshTronStakingWitnessesOptions = {}): Promise<void> {
+    const chainIdToUse = isSupportedTronChain(chainId)
+      ? chainId
+      : ChainId.TRON_MAINNET;
+
+    const witnesses = await this.#earnApiService.tronStaking.getWitnesses(
+      chainIdToUse,
+      witnessType,
+    );
+
+    this.update((state) => {
+      const chainState =
+        state.tron_staking[chainIdToUse] ?? DEFAULT_TRON_STAKING_CHAIN_STATE;
+      state.tron_staking[chainIdToUse] = {
+        ...chainState,
+        witnesses,
+      };
+    });
+  }
+
+  /**
+   * Refreshes all Tron staking related data including witnesses for all supported chains.
+   * This method allows partial success, meaning some data may update while other requests fail.
+   * All errors are collected and thrown as a single error message.
+   *
+   * Note: Tron staking witness data is not account-specific, so no address parameter is needed.
+   *
+   * @returns A promise that resolves when all possible data has been updated
+   * @throws {Error} If any of the refresh operations fail, with concatenated error messages
+   */
+  async refreshTronStakingData(): Promise<void> {
+    const errors: Error[] = [];
+
+    for (const chainId of this.#supportedTronStakingChains) {
+      await this.refreshTronStakingWitnesses({ chainId }).catch((error) => {
+        errors.push(error);
+      });
+    }
+
+    if (errors.length > 0) {
+      throw new Error(
+        `Failed to refresh some Tron staking data: ${errors
           .map((e) => e.message)
           .join(', ')}`,
       );
