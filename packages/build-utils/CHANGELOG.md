@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.0]
+
 ### Uncategorized
 
 - chore: Fix all auto-fixable ESLint warnings ([#7105](https://github.com/MetaMask/core/pull/7105))
@@ -93,7 +95,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial release ([#3577](https://github.com/MetaMask/core/pull/3577) [#3588](https://github.com/MetaMask/core/pull/3588))
 
-[Unreleased]: https://github.com/MetaMask/core/compare/@metamask/build-utils@3.0.4...HEAD
+[Unreleased]: https://github.com/MetaMask/core/compare/@metamask/build-utils@3.1.0...HEAD
+[3.1.0]: https://github.com/MetaMask/core/compare/@metamask/build-utils@3.0.4...@metamask/build-utils@3.1.0
 [3.0.4]: https://github.com/MetaMask/core/compare/@metamask/build-utils@3.0.3...@metamask/build-utils@3.0.4
 [3.0.3]: https://github.com/MetaMask/core/compare/@metamask/build-utils@3.0.2...@metamask/build-utils@3.0.3
 [3.0.2]: https://github.com/MetaMask/core/compare/@metamask/build-utils@3.0.1...@metamask/build-utils@3.0.2
