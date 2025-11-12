@@ -17,24 +17,25 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git fetch origin main:origin/main
+          git fetch origin main
 
           mapfile -t PACKAGES < <(find packages -maxdepth 2 -name "package.json" -not -path "*/node_modules/*")
           RELEASED_PACKAGES=()
 
           # Get all packages being released in this PR
           for package in "${PACKAGES[@]}"; do
-            MAIN_VERSION=$(git show "origin/main:$package" | jq -r .version)
+            MAIN_VERSION=$(git show "refs/remotes/origin/main:$package" | jq -r .version)
             HEAD_VERSION=$(jq -r .version "$package")
 
             if [ "$HEAD_VERSION" != "$MAIN_VERSION" ]; then
-              echo "📦 Package $package is being released (version $MAIN_VERSION -> $HEAD_VERSION)"
+              package_name=$(jq -r ".name" "$package")
+              echo "📦 Package \`$package_name\` is being released (version \`$MAIN_VERSION\` -> \`$HEAD_VERSION\`)"
               RELEASED_PACKAGES+=("$package")
             fi
           done
 
           # Get all files changed ahead of this PR.
-          git diff --name-only "HEAD^..$(git merge-base HEAD origin/main)" > changed-files.txt
+          git diff --name-only "HEAD^..$(git merge-base HEAD refs/remotes/origin/main)" > changed-files.txt
 
           CONFLICTS=()
           for pkg in "${RELEASED_PACKAGES[@]}"; do
@@ -44,10 +45,14 @@ jobs:
             fi
           done
 
-          mapfile -t CONFLICTS < <(printf "%s\n" "${CONFLICTS[@]}" | sort -u)
+          if [ ${#CONFLICTS[@]} -ne 0 ]; then
+            mapfile -t CONFLICTS < <(printf "%s\n" "${CONFLICTS[@]}" | sort -u)
+          fi
+
           if [ ${#CONFLICTS[@]} -ne 0 ]; then
             for conflict in "${CONFLICTS[@]}"; do
-              echo "::error:: Release conflict detected in $conflict."
+              package_name=$(jq -r ".name" "$conflict/package.json")
+              echo "::error::Release conflict detected in \`$package_name\`. This package is being released in this PR, but files in the package were also modified ahead of this PR. Please ensure that all changes are included in the release."
             done
             exit 1
           else
