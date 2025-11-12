@@ -68,6 +68,9 @@ jobs:
     needs: check-workflows
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Get merge base
         id: merge-base
         if: github.event_name != 'push'
