@@ -33,6 +33,13 @@ runs:
         # Get all files changed ahead of this PR.
         git diff --name-only "HEAD^..$(git merge-base HEAD refs/remotes/origin/main)" > changed-files.txt
 
+        # Debug info
+        echo "merge-base:"
+        git merge-base HEAD refs/remotes/origin/main
+
+        echo "Changed files ahead of this PR:"
+        cat changed-files.txt
+
         CONFLICTS=()
         for pkg in "${RELEASED_PACKAGES[@]}"; do
           pkg_dir=$(dirname "$pkg")
