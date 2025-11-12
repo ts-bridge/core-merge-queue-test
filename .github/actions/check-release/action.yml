@@ -3,7 +3,7 @@ description: Check for conflicts in packages being released in this PR.
 
 inputs:
   before:
-    description: "The commit SHA before the current commit or pull request."
+    description: 'The commit SHA before the current commit or pull request.'
     required: true
 
 runs:
