@@ -84,7 +84,7 @@ jobs:
     steps:
       - name: Check release
         if: needs.is-release.outputs.IS_RELEASE == 'true'
-        uses: ./.github/workflows/check-release.yml
+        uses: ./.github/actions/check-release
 
   publish-release:
     name: Publish release
