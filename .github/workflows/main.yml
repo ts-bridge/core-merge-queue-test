@@ -107,6 +107,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       #      - analyse-code
+      - check-release
       - lint-build-test
     outputs:
       passed: ${{ steps.set-output.outputs.passed }}
