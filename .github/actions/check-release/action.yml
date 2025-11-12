@@ -1,6 +1,11 @@
 name: Check release
 description: Check for conflicts in packages being released in this PR.
 
+inputs:
+  before:
+    description: "The commit SHA before the current commit or pull request."
+    required: true
+
 runs:
   using: composite
   steps:
@@ -11,6 +16,8 @@ runs:
 
     - name: Check commits for changes in released packages
       shell: bash
+      env:
+        BEFORE: ${{ inputs.before }}
       run: |
         set -euo pipefail
         git fetch origin main
@@ -31,7 +38,7 @@ runs:
         done
 
         # Get all files changed ahead of this PR.
-        git diff --name-only "HEAD^..$(git merge-base HEAD refs/remotes/origin/main)" > changed-files.txt
+        git diff --name-only "$BEFORE..$(git merge-base HEAD refs/remotes/origin/main)" > changed-files.txt
 
         # Debug info
         echo "merge-base:"

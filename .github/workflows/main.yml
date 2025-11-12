@@ -79,6 +79,8 @@ jobs:
       - name: Check release
         if: steps.is-release.outputs.IS_RELEASE == 'true'
         uses: ./.github/actions/check-release
+        with:
+          before: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
 
   is-release:
     name: Determine whether this is a release merge commit
