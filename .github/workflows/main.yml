@@ -70,6 +70,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Get merge base
         id: merge-base
@@ -77,7 +79,6 @@ jobs:
         env:
           BASE_REF: ${{ github.event.pull_request.base.ref || github.event.merge_group.base_ref }}
         run: |
-          git fetch origin "$BASE_REF" --depth 1
           echo "MERGE_BASE=$(git merge-base HEAD "refs/remotes/origin/$BASE_REF")" >> "$GITHUB_OUTPUT"
 
       - name: Check if the commit or pull request is a release
