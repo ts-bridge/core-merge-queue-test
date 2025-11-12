@@ -66,21 +66,21 @@ jobs:
   is-release:
     name: Determine whether this is a release merge commit
     needs: lint-build-test
-    if: github.event_name == 'push' || github.event_name == 'merge_group'
     runs-on: ubuntu-latest
     outputs:
       IS_RELEASE: ${{ steps.is-release.outputs.IS_RELEASE }}
     steps:
       - id: is-release
-        uses: MetaMask/action-is-release@b5597191f8cf57997d44897503a0e3bf427558f1
+        uses: MetaMask/action-is-release@be473fc22961e9f43a14c366d8012b4e67256ea4
         with:
           commit-starts-with: 'Release [version],Release v[version],Release/[version],Release/v[version],Release `[version]`'
-          before: ${{ github.event.before || github.event.merge_group.base_sha }}
+          commit-message: ${{ github.event.pull_request.title }}
+          before: ${{ github.event.before || github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
 
   check-release:
     name: Check release
     needs: is-release
-    if: needs.is-release.outputs.IS_RELEASE == 'true' && github.event_name == 'merge_group'
+    if: needs.is-release.outputs.IS_RELEASE == 'true'
     uses: ./.github/workflows/check-release.yml
 
   publish-release:
