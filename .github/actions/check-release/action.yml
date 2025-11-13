@@ -21,7 +21,7 @@ runs:
         EVENT_NAME: ${{ github.event_name }}
       run: |
         if [ "$EVENT_NAME" = "pull_request" ]; then
-          echo "TARGET=$(git merge-base HEAD main)" >> "$GITHUB_OUTPUT"
+          echo "TARGET=$(git merge-base HEAD refs/remotes/origin/main)" >> "$GITHUB_OUTPUT"
         elif [ "$EVENT_NAME" = "merge_group" ]; then
           echo "TARGET=$(git rev-parse HEAD^)" >> "$GITHUB_OUTPUT"
         else
@@ -34,6 +34,7 @@ runs:
       env:
         PULL_REQUEST: ${{ inputs.pull-request }}
         TARGET: ${{ steps.get-target.outputs.TARGET }}
+        GH_TOKEN: ${{ github.token }}
       run: |
         set -euo pipefail
         git fetch origin main
