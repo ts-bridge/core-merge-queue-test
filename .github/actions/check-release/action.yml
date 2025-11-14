@@ -25,16 +25,17 @@ runs:
         elif [ "$EVENT_NAME" = "merge_group" ]; then
           echo "TARGET=$(git rev-parse HEAD^)" >> "$GITHUB_OUTPUT"
         else
-          echo "::error::This action only supports `pull_request` and `merge_group` events."
+          echo "::error::This action only supports \`pull_request\` and \`merge_group\` events."
           exit 1
         fi
 
     - name: Check commits for changes in released packages
+      id: check-release
       shell: bash
       env:
+        GH_TOKEN: ${{ github.token }}
         PULL_REQUEST: ${{ inputs.pull-request }}
         TARGET: ${{ steps.get-target.outputs.TARGET }}
-        GH_TOKEN: ${{ github.token }}
       run: |
         set -euo pipefail
         git fetch origin main
@@ -55,6 +56,7 @@ runs:
           fi
         done
 
+        # Fetch the pull request branch to compare changes.
         PULL_REQUEST_BRANCH=$(gh pr view "$PULL_REQUEST" --json headRefName --template "{{ .headRefName }}")
         echo "🔍 Checking for release conflicts with files changed ahead of PR branch \`$PULL_REQUEST_BRANCH\`..."
         git fetch origin "$PULL_REQUEST_BRANCH"
@@ -76,11 +78,46 @@ runs:
         fi
 
         if [ ${#CONFLICTS[@]} -ne 0 ]; then
+          PACKAGE_NAMES=()
+
           for conflict in "${CONFLICTS[@]}"; do
             package_name=$(jq -r ".name" "$conflict/package.json")
+            PACKAGE_NAMES+=("$package_name")
             echo "::error::Release conflict detected in \`$package_name\`. This package is being released in this PR, but files in the package were also modified ahead of this PR. Please ensure that all changes are included in the release."
           done
-          exit 1
+
+          PACKAGE_NAMES_JSON=$(printf '%s\n' "${PACKAGE_NAMES[@]}" | jq -R . | jq -s .)
+          echo "package-names=$PACKAGE_NAMES_JSON" >> "$GITHUB_OUTPUT"
+          echo "has-conflicts=true" >> "$GITHUB_OUTPUT"
         else
           echo "✅ No release conflicts detected."
         fi
+
+    - name: Reply on pull request
+      if: steps.check-release.outputs.has-conflicts == 'true'
+      uses: actions/github-script@v8
+      env:
+        PACKAGE_NAMES: ${{ steps.check-release.outputs.package-names }}
+      with:
+        script: |
+          const packageNames = JSON.parse(process.env.PACKAGE_NAMES);
+          const packageList = packageNames.map(name => `- \`${name}\``).join('\n');
+
+          const body = `
+            ### Release conflict detected
+
+            The following packages are being released in this pull request, but files in these packages were also modified ahead of this PR:
+
+            ${packageList}
+
+            Please ensure that all changes are included in the release by updating this pull request, and adjusting the changelogs and version bumps as necessary.
+
+            <!-- Pull request release conflict comment -->
+          `;
+
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+            body: body.split('\n').map(line => line.trim()).join('\n'),
+          });
