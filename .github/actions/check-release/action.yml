@@ -4,6 +4,11 @@ description: Check for conflicts in packages being released in this PR.
 runs:
   using: composite
   steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
     - name: Get merge base
       id: merge-base
       shell: bash
@@ -88,7 +93,7 @@ runs:
         # Fetch the pull request branch to compare changes.
         PULL_REQUEST_BRANCH=$(gh pr view "$PULL_REQUEST" --json headRefName --template "{{ .headRefName }}")
         echo "🔍 Checking for release conflicts with files changed ahead of PR branch \`$PULL_REQUEST_BRANCH\`..."
-        git fetch origin "$PULL_REQUEST_BRANCH"
+        git fetch origin "refs/heads/$PULL_REQUEST_BRANCH"
 
         # Get all files changed ahead of this PR.
         BEFORE=$(git merge-base "refs/remotes/origin/main" "origin/$PULL_REQUEST_BRANCH")
