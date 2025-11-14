@@ -133,11 +133,13 @@ runs:
       if: steps.is-release.outputs.IS_RELEASE == 'true'
       with:
         script: |
-          const { data } = await github.paginate(github.rest.issues.listComments, {
+          const comments = await github.paginate(github.rest.issues.listComments, {
             owner: context.repo.owner,
             repo: context.repo.repo,
             issue_number: process.env.PR_NUMBER,
           });
+
+          console.log(`Found ${comments.length} comments on PR #${process.env.PR_NUMBER}.`);
 
           for (const comment of data) {
             if (comment.body.includes('<!-- Pull request release conflict comment -->')) {
