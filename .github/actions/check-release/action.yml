@@ -71,7 +71,9 @@ runs:
         PULL_REQUEST: ${{ steps.pr-number.outputs.PR_NUMBER }}
         TARGET: ${{ steps.get-target.outputs.TARGET }}
       run: |
-        set -euo pipefail
+        set -xeuo pipefail
+
+        git fetch --unshallow origin main
 
         mapfile -t PACKAGES < <(find packages -maxdepth 2 -name "package.json" -not -path "*/node_modules/*")
         RELEASED_PACKAGES=()
