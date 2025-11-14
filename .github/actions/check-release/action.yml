@@ -133,10 +133,10 @@ runs:
       if: steps.is-release.outputs.IS_RELEASE == 'true'
       with:
         script: |
-          const { data } = await github.rest.issues.listComments({
+          const { data } = await octokit.paginate(github.rest.issues.listComments, {
             owner: context.repo.owner,
             repo: context.repo.repo,
-            issue_number: context.issue.number,
+            issue_number: process.env.PR_NUMBER,
           });
 
           for (const comment of data) {
