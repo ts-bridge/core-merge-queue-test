@@ -1,11 +1,6 @@
 name: Check release
 description: Check for conflicts in packages being released in this PR.
 
-inputs:
-  pull-request:
-    description: 'The pull request number to get changed files from.'
-    required: true
-
 runs:
   using: composite
   steps:
@@ -73,7 +68,7 @@ runs:
       shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
-        PULL_REQUEST: ${{ inputs.pull-request }}
+        PULL_REQUEST: ${{ steps.pr-number.outputs.PR_NUMBER }}
         TARGET: ${{ steps.get-target.outputs.TARGET }}
       run: |
         set -euo pipefail

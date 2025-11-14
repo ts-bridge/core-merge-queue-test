@@ -76,8 +76,6 @@ jobs:
       - name: Check release
         if: github.event_name != 'push'
         uses: ./.github/actions/check-release
-        with:
-          pull-request: ${{ steps.pr-number.outputs.PR_NUMBER }}
 
   is-release:
     name: Determine whether this is a release merge commit
