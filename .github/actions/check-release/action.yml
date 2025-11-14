@@ -165,6 +165,7 @@ runs:
       if: steps.is-release.outputs.IS_RELEASE == 'true' && steps.check-release.outputs.has-conflicts == 'true'
       env:
         PACKAGE_NAMES: ${{ steps.check-release.outputs.package-names }}
+        PR_NUMBER: ${{ steps.pr-number.outputs.PR_NUMBER }}
       with:
         script: |
           const packageNames = JSON.parse(process.env.PACKAGE_NAMES);
@@ -187,6 +188,6 @@ runs:
           await github.rest.issues.createComment({
             owner: context.repo.owner,
             repo: context.repo.repo,
-            issue_number: context.issue.number,
+            issue_number: process.env.PR_NUMBER,
             body: body.split('\n').map(line => line.trim()).join('\n'),
           });
