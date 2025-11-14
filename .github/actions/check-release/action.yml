@@ -93,6 +93,33 @@ runs:
           echo "✅ No release conflicts detected."
         fi
 
+    - name: Hide previous comments
+      uses: actions/github-script@v8
+      with:
+        script: |
+          const { data } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+
+          for (const comment of data) {
+            if (comment.body.includes('<!-- Pull request release conflict comment -->')) {
+              await github.graphql(`
+                mutation($commentId: ID!, $classifier: ReportedContentClassifiers!) {
+                  minimizeComment(input: {subjectId: $commentId, classifier: $classifier}) {
+                    minimizedComment {
+                      isMinimized
+                    }
+                  }
+                }
+              `, {
+                commentId: comment.node_id,
+                classifier: 'OUTDATED',
+              });
+            }
+          }
+
     - name: Reply on pull request
       if: steps.check-release.outputs.has-conflicts == 'true'
       uses: actions/github-script@v8
@@ -103,10 +130,12 @@ runs:
           const packageNames = JSON.parse(process.env.PACKAGE_NAMES);
           const packageList = packageNames.map(name => `- \`${name}\``).join('\n');
 
-          const body = `
-            ### Release conflict detected
+          const mergeQueueNote = context.eventName === 'merge_group' ? ' while this pull request was in the merge queue' : '';
 
-            The following packages are being released in this pull request, but files in these packages were also modified ahead of this PR:
+          const body = `
+            ## Release conflict detected
+
+            The following packages are being released in this pull request, but files in these packages were also modified ahead of this pull request${mergeQueueNote}:
 
             ${packageList}
 
