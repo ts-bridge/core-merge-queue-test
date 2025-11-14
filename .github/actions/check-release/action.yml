@@ -14,8 +14,46 @@ runs:
       with:
         fetch-depth: 0
 
+    - name: Get merge base
+      id: merge-base
+      shell: bash
+      env:
+        BASE_REF: ${{ github.event.pull_request.base.ref || github.event.merge_group.base_ref }}
+      run: |
+        echo "MERGE_BASE=$(git merge-base HEAD "refs/remotes/origin/$BASE_REF")" >> "$GITHUB_OUTPUT"
+
+    - name: Check if the commit or pull request is a release
+      id: is-release
+      uses: MetaMask/action-is-release@ebd01f8c0d1a47626e90146a7bcd99f96106949d
+      with:
+        commit-starts-with: 'Release [version],Release v[version],Release/[version],Release/v[version],Release `[version]`'
+        commit-message: ${{ github.event.pull_request.title }}
+        before: ${{ steps.merge-base.outputs.MERGE_BASE }}
+
+    - name: Get pull request number
+      id: pr-number
+      if: steps.is-release.outputs.IS_RELEASE == 'true'
+      shell: bash
+      env:
+        EVENT_NAME: ${{ github.event_name }}
+        PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
+        MERGE_GROUP_HEAD_REF: ${{ github.event.merge_group.head_ref }}
+      run: |
+        if [ "$EVENT_NAME" = "pull_request" ]; then
+          echo "PR_NUMBER=$PULL_REQUEST_NUMBER" >> "$GITHUB_OUTPUT"
+        elif [ "$EVENT_NAME" = "merge_group" ]; then
+          PR_NUMBER_REGEX='/pr-([0-9]+)-'
+          if [[ "$MERGE_GROUP_HEAD_REF" =~ $PR_NUMBER_REGEX ]]; then
+            echo "PR_NUMBER=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Could not extract PR number from merge group head ref: $MERGE_GROUP_HEAD_REF."
+            exit 1
+          fi
+        fi
+
     - name: Get target reference
       id: get-target
+      if: steps.is-release.outputs.IS_RELEASE == 'true'
       shell: bash
       env:
         EVENT_NAME: ${{ github.event_name }}
@@ -31,6 +69,7 @@ runs:
 
     - name: Check commits for changes in released packages
       id: check-release
+      if: steps.is-release.outputs.IS_RELEASE == 'true'
       shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
@@ -95,6 +134,7 @@ runs:
 
     - name: Hide previous comments
       uses: actions/github-script@v8
+      if: steps.is-release.outputs.IS_RELEASE == 'true'
       with:
         script: |
           const { data } = await github.rest.issues.listComments({
@@ -121,8 +161,8 @@ runs:
           }
 
     - name: Reply on pull request
-      if: steps.check-release.outputs.has-conflicts == 'true'
       uses: actions/github-script@v8
+      if: steps.is-release.outputs.IS_RELEASE == 'true' && steps.check-release.outputs.has-conflicts == 'true'
       env:
         PACKAGE_NAMES: ${{ steps.check-release.outputs.package-names }}
       with:
