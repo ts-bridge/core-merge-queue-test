@@ -72,7 +72,6 @@ runs:
         TARGET: ${{ steps.get-target.outputs.TARGET }}
       run: |
         set -euo pipefail
-        git fetch origin main
 
         mapfile -t PACKAGES < <(find packages -maxdepth 2 -name "package.json" -not -path "*/node_modules/*")
         RELEASED_PACKAGES=()
@@ -93,7 +92,7 @@ runs:
         # Fetch the pull request branch to compare changes.
         PULL_REQUEST_BRANCH=$(gh pr view "$PULL_REQUEST" --json headRefName --template "{{ .headRefName }}")
         echo "🔍 Checking for release conflicts with files changed ahead of PR branch \`$PULL_REQUEST_BRANCH\`..."
-        git fetch origin "refs/heads/$PULL_REQUEST_BRANCH:refs/remotes/origin/$PULL_REQUEST_BRANCH"
+        git fetch origin "$PULL_REQUEST_BRANCH"
 
         # Get all files changed ahead of this PR.
         BEFORE=$(git merge-base "refs/remotes/origin/main" "refs/remotes/origin/$PULL_REQUEST_BRANCH")
