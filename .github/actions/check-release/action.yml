@@ -92,7 +92,10 @@ runs:
         # Fetch the pull request branch to compare changes.
         PULL_REQUEST_BRANCH=$(gh pr view "$PULL_REQUEST" --json headRefName --template "{{ .headRefName }}")
         echo "🔍 Checking for release conflicts with files changed ahead of PR branch \`$PULL_REQUEST_BRANCH\`..."
-        git fetch origin "$PULL_REQUEST_BRANCH"
+        git fetch origin "$PULL_REQUEST_BRANCH:refs/remotes/origin/$PULL_REQUEST_BRANCH"
+
+        git branch -a
+        git show-ref
 
         # Get all files changed ahead of this PR.
         BEFORE=$(git merge-base "refs/remotes/origin/main" "refs/remotes/origin/$PULL_REQUEST_BRANCH")
